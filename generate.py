@@ -109,6 +109,11 @@ def line_padding_bits_cnt(length):
             return 0
 
 
+def get_encoded_line_left(line):
+    line_len = line[0] - 32
+    return line_len * 4 % 3
+
+
 def poem_padding_bits_cnt(l):
     return sum(map(lambda x: line_padding_bits_cnt(len(x)), l))
 
@@ -123,20 +128,19 @@ def take_next_flag_chr(part_flag_taken):
 def insert_flag(encoded):
     ret = list(map(lambda x: bytearray(x), encoded))
     part_flag_taken = 0  # a part is 4 bits
-    for i, j in enumerate(ret):
-        line_len = j[0] - 32
-        left = line_len * 4 % 3
+    for i in ret:
+        left = get_encoded_line_left(i)
         if left == 0:
             continue
         elif left == 1:
-            assert (j[-1] - 32 == 0) and (j[-2] - 32 == 0) and ((j[-3] - 32)| 0b110000 == 0b110000)
-            j[-3] = ((j[-3] - 32) | take_next_flag_chr(part_flag_taken)) + 32
+            assert (i[-1] - 32 == 0) and (i[-2] - 32 == 0) and ((i[-3] - 32)| 0b110000 == 0b110000)
+            i[-3] = ((i[-3] - 32) | take_next_flag_chr(part_flag_taken)) + 32
             part_flag_taken += 1
         elif left == 2:
-            assert (j[-1] - 32 == 0) and ((j[-2] - 32) | 0b111100 == 0b111100)
+            assert (i[-1] - 32 == 0) and ((i[-2] - 32) | 0b111100 == 0b111100)
             part_bits = take_next_flag_chr(part_flag_taken)
-            j[-2] = ((j[-2] - 32) | (part_bits & 0b1100) >> 2) + 32
-            j[-1] = ((j[-1] - 32) | part_bits & 0b0011) + 32
+            i[-2] = ((i[-2] - 32) | ((part_bits & 0b1100) >> 2)) + 32
+            i[-1] = ((i[-1] - 32) | ((part_bits & 0b0011) << 2)) + 32
             part_flag_taken += 1
     assert(part_flag_taken == len(flag) * 2)
     return ret
